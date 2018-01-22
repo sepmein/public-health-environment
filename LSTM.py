@@ -2,7 +2,13 @@ import pandas as pd
 import tensorflow as tf
 from oyou import Model
 from twone import RNNContainer
+import shutil
+from os.path import isdir
 
+if isdir('./log'):
+    shutil.rmtree('./log')
+if isdir('./model'):
+    shutil.rmtree('./model')
 # #############################################################
 #  build input fn
 df = pd.read_csv('interpolated_data_without_date.csv')
@@ -19,11 +25,10 @@ container = RNNContainer(
 
 container.set_feature_tags(feature_tags)
 container.set_target_tags(target_tag)
-
+container.interpolate()
 container.gen_batch_for_sequence_classification(
     batch=5,
-    time_steps=100,
-    randomly=True
+    time_steps=100
 )
 
 # ###############################################################
@@ -36,7 +41,8 @@ features = tf.placeholder(
 )
 targets = tf.placeholder(
     dtype=tf.float32,
-    shape=[container.__batch__, 1, container.num_targets]
+    shape=[container.__batch__, 1, container.num_targets],
+    name='targets'
 )
 # cells
 num_units = 150
@@ -85,10 +91,6 @@ losses = tf.losses.mean_squared_error(
     predictions=predictions_reshaped_for_losses
 )
 
-# optimizer
-optimizer = tf.train.AdamOptimizer()
-train = optimizer.minimize(losses)
-
 ################################################################
 # use oyou to define the model
 model = Model(name='death_environment')
@@ -120,7 +122,7 @@ model.train(
     training_targets=container.get_training_targets,
     cv_features=container.get_cv_features,
     cv_targets=container.get_cv_targets,
-    saving_features=container.get_cv_features,
-    saving_targets=container.get_cv_targets,
+    # saving_features=container.get_cv_features,
+    # saving_targets=container.get_cv_targets,
     training_steps=100000
 )
