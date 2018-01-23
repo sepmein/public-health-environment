@@ -12,7 +12,7 @@ if isdir('./model'):
     shutil.rmtree('./model')
 # #############################################################
 #  build input fn
-df = pd.read_csv('D:/sepmein/public-health-environment/interpolated_data_without_date.csv')
+df = pd.read_csv('interpolated_data_without_date.csv')
 feature_tags = [
     'month', 'day', 'temp', 'rh', 'so2', 'no2', 'co', 'pm10', 'pm2.5', 'o3', 'dow'
 ]
@@ -123,9 +123,10 @@ model.log_scalar(name='loss',
 model.log_scalar(name='loss',
                  tensor=losses,
                  group='cv')
-# model.define_saving_strategy(indicator_tensor=losses,
-#                              interval=50,
-#                              feed_dict=[features, targets])
+model.define_saving_strategy(indicator_tensor=losses,
+                             interval=50,
+                             feed_dict=[features, targets],
+                             max_to_keep=10)
 model.train(
     features=container.get_training_features,
     targets=container.get_training_targets,
@@ -133,8 +134,10 @@ model.train(
     training_targets=container.get_training_targets,
     cv_features=container.get_cv_features,
     cv_targets=container.get_cv_targets,
-    # saving_features=container.get_cv_features,
-    # saving_targets=container.get_cv_targets,
-    training_steps=100000,
+    saving_features=container.get_cv_features,
+    saving_targets=container.get_cv_targets,
+    training_steps=10000,
     learning_rate=0.0005
 )
+
+print(model.saving_strategy['top_model_list'])
