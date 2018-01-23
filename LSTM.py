@@ -1,9 +1,10 @@
+import shutil
+from os.path import isdir
+
 import pandas as pd
 import tensorflow as tf
 from oyou import Model
 from twone import RNNContainer
-import shutil
-from os.path import isdir
 
 if isdir('./log'):
     shutil.rmtree('./log')
@@ -11,7 +12,7 @@ if isdir('./model'):
     shutil.rmtree('./model')
 # #############################################################
 #  build input fn
-df = pd.read_csv('interpolated_data_without_date.csv')
+df = pd.read_csv('D:/sepmein/public-health-environment/interpolated_data_without_date.csv')
 feature_tags = [
     'month', 'day', 'temp', 'rh', 'so2', 'no2', 'co', 'pm10', 'pm2.5', 'o3', 'dow'
 ]
@@ -27,8 +28,9 @@ container.set_feature_tags(feature_tags)
 container.set_target_tags(target_tag)
 container.interpolate()
 container.gen_batch_for_sequence_classification(
-    batch=5,
-    time_steps=100
+    batch=1,
+    time_steps=365,
+    randomly=False
 )
 
 # ###############################################################
@@ -44,18 +46,21 @@ targets = tf.placeholder(
     shape=[container.__batch__, 1, container.num_targets],
     name='targets'
 )
+
 # cells
-num_units = 150
-cell = tf.nn.rnn_cell.LSTMCell(
-    num_units=num_units
-)
+num_units = 200
+num_layers = 3
+cells = []
+for i in range(num_layers):
+    cells.append(tf.nn.rnn_cell.GRUCell(num_units))
+
+stacked_cells = tf.nn.rnn_cell.MultiRNNCell(cells=cells)
 output, final_state = tf.nn.dynamic_rnn(
-    cell=cell,
+    cell=stacked_cells,
     inputs=features,
     dtype=tf.float32
 )
 
-print('ouput shape:', output.get_shape())
 output_transposed = tf.transpose(
     output,
     [1, 0, 2]
@@ -75,8 +80,14 @@ last_output_reshaped = tf.reshape(
 )
 # last_output_transposed = tf.transpose(last_output, [1, 0, 2])
 # predictions
-predictions = tf.contrib.layers.fully_connected(
+hidden_layer_1_size = 10
+hidden_layer_1 = tf.contrib.layers.fully_connected(
     last_output_reshaped,
+    hidden_layer_1_size
+)
+
+predictions = tf.contrib.layers.fully_connected(
+    hidden_layer_1,
     container.num_targets
 )
 
@@ -124,5 +135,6 @@ model.train(
     cv_targets=container.get_cv_targets,
     # saving_features=container.get_cv_features,
     # saving_targets=container.get_cv_targets,
-    training_steps=100000
+    training_steps=100000,
+    learning_rate=0.0005
 )
