@@ -124,7 +124,7 @@ model.log_scalar(name='loss',
                  tensor=losses,
                  group='cv')
 model.define_saving_strategy(indicator_tensor=losses,
-                             interval=50,
+                             interval=10,
                              feed_dict=[features, targets],
                              max_to_keep=10)
 model.train(
@@ -136,8 +136,8 @@ model.train(
     cv_targets=container.get_cv_targets,
     saving_features=container.get_cv_features,
     saving_targets=container.get_cv_targets,
-    training_steps=10000,
+    training_steps=100,
     learning_rate=0.0005
 )
 
-print(model.saving_strategy['top_model_list'])
+print(model.saving_strategy.top_model_list)
