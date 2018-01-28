@@ -28,9 +28,8 @@ container.set_feature_tags(feature_tags)
 container.set_target_tags(target_tag)
 container.interpolate()
 container.gen_batch_for_sequence_classification(
-    batch=1,
-    time_steps=365,
-    randomly=False
+    batch=160,
+    time_steps=150
 )
 
 # ###############################################################
@@ -48,17 +47,19 @@ targets = tf.placeholder(
 )
 
 # cells
-num_units = 200
+num_units = 20
 num_layers = 3
 cells = []
 for i in range(num_layers):
-    cells.append(tf.nn.rnn_cell.GRUCell(num_units))
+    cells.append(tf.contrib.rnn.GRUCell(num_units))
 
 stacked_cells = tf.nn.rnn_cell.MultiRNNCell(cells=cells)
+initial_state = stacked_cells.zero_state(batch_size=container.__batch__,
+                                         dtype=tf.float32)
 output, final_state = tf.nn.dynamic_rnn(
     cell=stacked_cells,
     inputs=features,
-    dtype=tf.float32
+    initial_state=initial_state
 )
 
 output_transposed = tf.transpose(
@@ -80,14 +81,9 @@ last_output_reshaped = tf.reshape(
 )
 # last_output_transposed = tf.transpose(last_output, [1, 0, 2])
 # predictions
-hidden_layer_1_size = 10
-hidden_layer_1 = tf.contrib.layers.fully_connected(
-    last_output_reshaped,
-    hidden_layer_1_size
-)
 
 predictions = tf.contrib.layers.fully_connected(
-    hidden_layer_1,
+    last_output_reshaped,
     container.num_targets
 )
 
@@ -111,10 +107,12 @@ model.prediction = predictions
 model.losses = losses
 
 model.create_log_group(
-    name='training'
+    name='training',
+    record_interval=50
 )
 model.create_log_group(
-    name='cv'
+    name='cv',
+    record_interval=50
 )
 
 model.log_scalar(name='loss',
@@ -123,8 +121,20 @@ model.log_scalar(name='loss',
 model.log_scalar(name='loss',
                  tensor=losses,
                  group='cv')
+model.log_histogram(name='prediction_training',
+                    tensor=predictions,
+                    group='training')
+model.log_histogram(name='prediction_cv',
+                    tensor=predictions,
+                    group='cv')
+model.log_histogram(name='targets_training',
+                    tensor=targets,
+                    group='training')
+model.log_histogram(name='targets_cv',
+                    tensor=targets,
+                    group='cv')
 model.define_saving_strategy(indicator_tensor=losses,
-                             interval=10,
+                             interval=100,
                              feed_dict=[features, targets],
                              max_to_keep=10)
 model.train(
@@ -136,8 +146,12 @@ model.train(
     cv_targets=container.get_cv_targets,
     saving_features=container.get_cv_features,
     saving_targets=container.get_cv_targets,
-    training_steps=100,
-    learning_rate=0.0005
+    training_steps=10000
 )
 
 print(model.saving_strategy.top_model_list)
+
+prediction_model = Model.load(path='./model/0')
+result = prediction_model.predict(inputs=container.get_training_features())
+print('predicted ==========/n', result)
+print('actual =============/n', container.get_training_targets())
