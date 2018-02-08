@@ -27,9 +27,9 @@ container = RNNContainer(
 container.set_feature_tags(feature_tags)
 container.set_target_tags(target_tag)
 container.interpolate()
-container.gen_batch_for_sequence_classification(
-    batch=160,
-    time_steps=150
+container.gen_batch_for_sequence_labeling(
+    batch=1,
+    time_steps=30
 )
 
 # ###############################################################
@@ -47,8 +47,8 @@ targets = tf.placeholder(
 )
 
 # cells
-num_units = 20
-num_layers = 3
+num_units = 10
+num_layers = 2
 cells = []
 for i in range(num_layers):
     cells.append(tf.contrib.rnn.GRUCell(num_units))
@@ -56,10 +56,11 @@ for i in range(num_layers):
 stacked_cells = tf.nn.rnn_cell.MultiRNNCell(cells=cells)
 initial_state = stacked_cells.zero_state(batch_size=container.__batch__,
                                          dtype=tf.float32)
+state = tf.placeholder(name='state', shape=initial_state.get_shape(), dtype=tf.float32)
 output, final_state = tf.nn.dynamic_rnn(
     cell=stacked_cells,
     inputs=features,
-    initial_state=initial_state
+    initial_state=state
 )
 
 output_transposed = tf.transpose(
@@ -146,8 +147,11 @@ model.train(
     cv_targets=container.get_cv_targets,
     saving_features=container.get_cv_features,
     saving_targets=container.get_cv_targets,
-    training_steps=10000
+    training_steps=50000
 )
+
+
+
 
 print(model.saving_strategy.top_model_list)
 
