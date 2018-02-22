@@ -58,10 +58,11 @@ for i in range(num_layers):
 stacked_cells = tf.nn.rnn_cell.MultiRNNCell(cells=cells)
 initial_state = stacked_cells.zero_state(batch_size=container.__batch__,
                                          dtype=tf.float32)
+state = tf.placeholder(name='state', shape=initial_state.get_shape(), dtype=tf.float32)
 output, final_state = tf.nn.dynamic_rnn(
     cell=stacked_cells,
     inputs=features,
-    initial_state=initial_state
+    initial_state=state
 )
 
 output_transposed = tf.transpose(
@@ -157,8 +158,7 @@ model.train(
     cv_targets=container.get_cv_targets,
     saving_features=container.get_cv_features,
     saving_targets=container.get_cv_targets,
-    training_steps=100000,
-    learning_rate=0.1
+    training_steps=50000
 )
 
 print(model.saving_strategy.top_model_list)
