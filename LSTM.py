@@ -28,10 +28,12 @@ container.set_feature_tags(feature_tags)
 container.set_target_tags(target_tag)
 container.interpolate()
 container.gen_batch_for_sequence_classification(
-    batch=160,
-    time_steps=150
+    batch=1,
+    time_steps=200
 )
 
+training_epochs = 100
+cv_epochs = 20
 # ###############################################################
 # build tensorflow graph
 # placeholders
@@ -47,7 +49,7 @@ targets = tf.placeholder(
 )
 
 # cells
-num_units = 20
+num_units = 10
 num_layers = 3
 cells = []
 for i in range(num_layers):
@@ -98,6 +100,15 @@ losses = tf.losses.mean_squared_error(
     predictions=predictions_reshaped_for_losses
 )
 
+for j in range(training_epochs):
+    if j is 0:
+        pass
+    else:
+        pass
+
+for h in range(cv_epochs):
+    pass
+
 ################################################################
 # use oyou to define the model
 model = Model(name='death_environment')
@@ -146,7 +157,8 @@ model.train(
     cv_targets=container.get_cv_targets,
     saving_features=container.get_cv_features,
     saving_targets=container.get_cv_targets,
-    training_steps=10000
+    training_steps=100000,
+    learning_rate=0.1
 )
 
 print(model.saving_strategy.top_model_list)
