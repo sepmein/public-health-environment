@@ -101,15 +101,6 @@ losses = tf.losses.mean_squared_error(
     predictions=predictions_reshaped_for_losses
 )
 
-for j in range(training_epochs):
-    if j is 0:
-        pass
-    else:
-        pass
-
-for h in range(cv_epochs):
-    pass
-
 ################################################################
 # use oyou to define the model
 model = Model(name='death_environment')
