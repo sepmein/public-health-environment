@@ -3,7 +3,7 @@ from os.path import isdir
 
 import pandas as pd
 import tensorflow as tf
-from oyou import Model
+from oyou import RnnModel as Model
 from twone import RNNContainer
 
 if isdir('./log'):
@@ -27,13 +27,11 @@ container = RNNContainer(
 container.set_feature_tags(feature_tags)
 container.set_target_tags(target_tag)
 container.interpolate()
-container.gen_batch_for_sequence_classification(
+container.gen_batch_for_sequence_labeling(
     batch=1,
-    time_steps=200
+    time_steps=20
 )
 
-training_epochs = 100
-cv_epochs = 20
 # ###############################################################
 # build tensorflow graph
 # placeholders
@@ -58,11 +56,11 @@ for i in range(num_layers):
 stacked_cells = tf.nn.rnn_cell.MultiRNNCell(cells=cells)
 initial_state = stacked_cells.zero_state(batch_size=container.__batch__,
                                          dtype=tf.float32)
-state = tf.placeholder(name='state', shape=initial_state.get_shape(), dtype=tf.float32)
+states = (tf.placeholder(name='state', shape=state.get_shape(), dtype=tf.float32) for state in initial_state)
 output, final_state = tf.nn.dynamic_rnn(
     cell=stacked_cells,
     inputs=features,
-    initial_state=state
+    initial_state=states
 )
 
 output_transposed = tf.transpose(
@@ -108,47 +106,50 @@ model.features = features
 model.targets = targets
 model.prediction = predictions
 model.losses = losses
+model.initial_state = initial_state
+model.states = states
+# model.create_log_group(
+#     name='training',
+#     record_interval=50
+# )
+# model.create_log_group(
+#     name='cv',
+#     record_interval=50
+# )
 
-model.create_log_group(
-    name='training',
-    record_interval=50
-)
-model.create_log_group(
-    name='cv',
-    record_interval=50
-)
-
-model.log_scalar(name='loss',
-                 tensor=losses,
-                 group='training')
-model.log_scalar(name='loss',
-                 tensor=losses,
-                 group='cv')
-model.log_histogram(name='prediction_training',
-                    tensor=predictions,
-                    group='training')
-model.log_histogram(name='prediction_cv',
-                    tensor=predictions,
-                    group='cv')
-model.log_histogram(name='targets_training',
-                    tensor=targets,
-                    group='training')
-model.log_histogram(name='targets_cv',
-                    tensor=targets,
-                    group='cv')
-model.define_saving_strategy(indicator_tensor=losses,
-                             interval=100,
-                             feed_dict=[features, targets],
-                             max_to_keep=10)
+# model.log_scalar(name='loss',
+#                  tensor=losses,
+#                  group='training')
+# model.log_scalar(name='loss',
+#                  tensor=losses,
+#                  group='cv')
+# model.log_histogram(name='prediction_training',
+#                     tensor=predictions,
+#                     group='training')
+# model.log_histogram(name='prediction_cv',
+#                     tensor=predictions,
+#                     group='cv')
+# model.log_histogram(name='targets_training',
+#                     tensor=targets,
+#                     group='training')
+# model.log_histogram(name='targets_cv',
+#                     tensor=targets,
+#                     group='cv')
+# model.define_saving_strategy(indicator_tensor=losses,
+#                              interval=100,
+#                              feed_dict=[features, targets],
+#                              max_to_keep=10)
 model.train(
     features=container.get_training_features,
     targets=container.get_training_targets,
-    training_features=container.get_training_features,
-    training_targets=container.get_training_targets,
+    # training_features=container.get_training_features,
+    # training_targets=container.get_training_targets,
     cv_features=container.get_cv_features,
     cv_targets=container.get_cv_targets,
-    saving_features=container.get_cv_features,
-    saving_targets=container.get_cv_targets,
+    training_epochs=container.training_epochs,
+    cv_epochs=container.cv_epochs,
+    # saving_features=container.get_cv_features,
+    # saving_targets=container.get_cv_targets,
     training_steps=50000
 )
 
