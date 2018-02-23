@@ -23,13 +23,14 @@ target_tag = [
 container = RNNContainer(
     data_frame=df
 )
-
+BATCH = 1
+TIME_STEPS = 30
 container.set_feature_tags(feature_tags)
 container.set_target_tags(target_tag)
 container.interpolate()
 container.gen_batch_for_sequence_labeling(
-    batch=1,
-    time_steps=20
+    batch=BATCH,
+    time_steps=TIME_STEPS
 )
 
 # ###############################################################
@@ -42,12 +43,12 @@ features = tf.placeholder(
 )
 targets = tf.placeholder(
     dtype=tf.float32,
-    shape=[container.__batch__, 1, container.num_targets],
+    shape=[container.__batch__, container.__time_steps__, container.num_targets],
     name='targets'
 )
 
 # cells
-num_units = 10
+num_units = 30
 num_layers = 3
 cells = []
 for i in range(num_layers):
@@ -56,41 +57,48 @@ for i in range(num_layers):
 stacked_cells = tf.nn.rnn_cell.MultiRNNCell(cells=cells)
 initial_state = stacked_cells.zero_state(batch_size=container.__batch__,
                                          dtype=tf.float32)
-states = (tf.placeholder(name='state', shape=state.get_shape(), dtype=tf.float32) for state in initial_state)
+states = tf.placeholder(
+    dtype=tf.float32,
+    name='states',
+    shape=(num_layers, BATCH, num_units)
+)
+state_tuple = tuple(tf.unstack(value=states))
 output, final_state = tf.nn.dynamic_rnn(
     cell=stacked_cells,
     inputs=features,
-    initial_state=states
+    initial_state=state_tuple
 )
-
-output_transposed = tf.transpose(
-    output,
-    [1, 0, 2]
-)
-
-time_steps_length_of_output = int(output_transposed.get_shape()[0])
-batches = int(output_transposed.get_shape()[1])
-
-# gather the last output
-last_output = tf.gather(
-    output_transposed,
-    time_steps_length_of_output - 1
-)
-last_output_reshaped = tf.reshape(
-    last_output,
-    shape=[-1, num_units]
-)
+#
+# output_transposed = tf.transpose(
+#     output,
+#     [1, 0, 2]
+# )
+#
+# time_steps_length_of_output = int(output_transposed.get_shape()[0])
+# batches = int(output_transposed.get_shape()[1])
+#
+# # gather the last output
+# last_output = tf.gather(
+#     output_transposed,
+#     time_steps_length_of_output - 1
+# )
+# last_output_reshaped = tf.reshape(
+#     last_output,
+#     shape=[-1, num_units]
+# )
 # last_output_transposed = tf.transpose(last_output, [1, 0, 2])
 # predictions
-
+# output_reshaped = tf.reshape(tensor=output,
+#                              shape=(-1, 1))
+# output_transposed = tf.transpose(output, [0, 2, 1])
 predictions = tf.contrib.layers.fully_connected(
-    last_output_reshaped,
-    container.num_targets
+    inputs=output,
+    num_outputs=container.num_targets
 )
 
 predictions_reshaped_for_losses = tf.reshape(
     predictions,
-    shape=(container.__batch__, 1, container.num_targets)
+    shape=(container.__batch__, container.__time_steps__, container.num_targets)
 )
 
 # define losses
@@ -108,6 +116,7 @@ model.prediction = predictions
 model.losses = losses
 model.initial_state = initial_state
 model.states = states
+model.final_states = final_state
 # model.create_log_group(
 #     name='training',
 #     record_interval=50
@@ -148,6 +157,7 @@ model.train(
     cv_targets=container.get_cv_targets,
     training_epochs=container.training_epochs,
     cv_epochs=container.cv_epochs,
+    learning_rate=1e-4,
     # saving_features=container.get_cv_features,
     # saving_targets=container.get_cv_targets,
     training_steps=50000
