@@ -157,7 +157,7 @@ model.train(
     cv_targets=container.get_cv_targets,
     training_epochs=container.training_epochs,
     cv_epochs=container.cv_epochs,
-    learning_rate=1e-4,
+    learning_rate=1e-3,
     # saving_features=container.get_cv_features,
     # saving_targets=container.get_cv_targets,
     training_steps=50000
