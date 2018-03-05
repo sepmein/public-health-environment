@@ -117,37 +117,21 @@ model.losses = losses
 model.initial_state = initial_state
 model.states = states
 model.final_states = final_state
-# model.create_log_group(
-#     name='training',
-#     record_interval=50
-# )
-# model.create_log_group(
-#     name='cv',
-#     record_interval=50
-# )
 
-# model.log_scalar(name='loss',
-#                  tensor=losses,
-#                  group='training')
-# model.log_scalar(name='loss',
-#                  tensor=losses,
-#                  group='cv')
-# model.log_histogram(name='prediction_training',
-#                     tensor=predictions,
-#                     group='training')
-# model.log_histogram(name='prediction_cv',
-#                     tensor=predictions,
-#                     group='cv')
-# model.log_histogram(name='targets_training',
-#                     tensor=targets,
-#                     group='training')
-# model.log_histogram(name='targets_cv',
-#                     tensor=targets,
-#                     group='cv')
-# model.define_saving_strategy(indicator_tensor=losses,
-#                              interval=100,
-#                              feed_dict=[features, targets],
-#                              max_to_keep=10)
+model.log_scalar_to_training_group(name='loss',
+                                   tensor=losses)
+model.log_scalar_to_cv_group(name='loss',
+                             tensor=losses)
+model.log_histogram_to_training_group(name='prediction_training',
+                                      tensor=predictions)
+model.log_histogram_to_cv_group(name='prediction_cv',
+                                tensor=predictions)
+model.log_histogram_to_training_group(name='targets_training',
+                                      tensor=targets)
+model.log_histogram_to_cv_group(name='targets_cv',
+                                tensor=targets)
+model.define_saving_strategy(indicator_tensor=losses,
+                             max_to_keep=10)
 model.train(
     features=container.get_training_features,
     targets=container.get_training_targets,
