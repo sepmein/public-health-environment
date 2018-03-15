@@ -10,6 +10,7 @@ if isdir('./log'):
     shutil.rmtree('./log')
 if isdir('./model'):
     shutil.rmtree('./model')
+
 # #############################################################
 #  build input fn
 df = pd.read_csv('interpolated_data_without_date.csv')
@@ -32,7 +33,6 @@ container.gen_batch_for_sequence_labeling(
     batch=BATCH,
     time_steps=TIME_STEPS
 )
-
 # ###############################################################
 # build tensorflow graph
 # placeholders
@@ -48,7 +48,7 @@ targets = tf.placeholder(
 )
 
 # cells
-num_units = 30
+num_units = 40
 num_layers = 3
 cells = []
 for i in range(num_layers):
@@ -110,6 +110,7 @@ losses = tf.losses.mean_squared_error(
 ################################################################
 # use oyou to define the model
 model = Model(name='death_environment')
+model.log_save_interval = 50
 model.features = features
 model.targets = targets
 model.prediction = predictions
