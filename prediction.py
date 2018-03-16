@@ -1,5 +1,5 @@
 import pandas as pd
-from oyou import Model
+from oyou import RnnModel as Model
 from twone import RNNContainer
 
 # #############################################################
@@ -22,14 +22,18 @@ container.set_target_tags(target_tag)
 container.interpolate()
 container.gen_batch_for_sequence_labeling(
     batch=BATCH,
-    time_steps=TIME_STEPS
+    time_steps=TIME_STEPS,
+    lock=False
 )
-model = Model.load(path='./model/0')
-predictions = model.predict(
-    features=container.get_training_features,
-    epochs=container.training_epochs,
-    predict_features=container.get_cv_features,
-    predict_epochs=container.cv_epochs
-)
+for i in range(5, 8):
+    model = Model.load(path='./model/' + str(i))
+    predictions = model.predict(
+        features=container.get_training_features,
+        epochs=container.training_epochs,
+        predict_features=container.get_cv_features,
+        predict_epochs=container.cv_epochs
+    )
+    print('=====================')
 
-print(predictions)
+# for i in range(container.cv_epochs):
+#     print(container.get_cv_targets())

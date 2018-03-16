@@ -136,15 +136,11 @@ model.define_saving_strategy(indicator_tensor=losses,
 model.train(
     features=container.get_training_features,
     targets=container.get_training_targets,
-    # training_features=container.get_training_features,
-    # training_targets=container.get_training_targets,
     cv_features=container.get_cv_features,
     cv_targets=container.get_cv_targets,
     training_epochs=container.training_epochs,
     cv_epochs=container.cv_epochs,
     learning_rate=1e-3,
-    # saving_features=container.get_cv_features,
-    # saving_targets=container.get_cv_targets,
     training_steps=50000
 )
 
